@@ -1,0 +1,18 @@
+[package]
+name = "diesel-demo"
+version = "0.1.0"
+authors = ["Luck <330955133@qq.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+warp = { version = "0.3.1", features = ["tls"] }
+
+# diesel是Rust的ORM(对象关系映射器)和查询构建器
+# diesel为PostgreSQL、Mysql及SQLite提供了开箱即用的支持
+diesel = { version="1.4.6",features=["extras","postgres","r2d2"] }
+
+# 加载环境配置文件.env
+dotenv = "0.15.0"
