@@ -211,3 +211,261 @@ pub fn filter_example() {
         .first::<i32>(&connection);
     println!("filter_example:{:?}", tess_id);
 }
+
+pub fn find_example() {
+    use diesel::result::Error::NotFound;
+
+    let sean = (1, "Sean".to_string());
+    let tess = (2, "Tess".to_string());
+
+    let connection = db::establish_connection();
+    assert_eq!(Ok(sean), users.find(1).first(&connection));
+    assert_eq!(Ok(tess), users.find(2).first(&connection));
+
+    assert_eq!(
+        Err::<(i32, String), _>(NotFound),
+        users.find(3).first(&connection)
+    );
+
+    println!("find example");
+
+    type DB = diesel::pg::Pg;
+    let sql = diesel::debug_query::<DB, _>(&users.find(3)).to_string();
+    println!("SQL:{:?}", sql);
+}
+
+pub fn order_example() {
+    let connection = db::establish_connection();
+    connection.execute("DELETE FROM users").unwrap();
+    diesel::insert_into(users)
+        .values(&vec![name.eq("Saul"), name.eq("Steve"), name.eq("Stan")])
+        .execute(&connection)
+        .unwrap();
+
+    let ordered_names = users
+        .select(name)
+        .order(name.desc())
+        .load::<String>(&connection)
+        .unwrap();
+    println!("order example: {:?}", ordered_names);
+
+    diesel::insert_into(users)
+        .values(name.eq("Stan"))
+        .execute(&connection)
+        .unwrap();
+
+    let data = users
+        .select((name, id))
+        .order((name.asc(), id.desc()))
+        .load::<(String, i32)>(&connection)
+        .unwrap();
+
+    println!("asc desc:{:?}", data);
+    println!("order example end");
+
+    let data = users
+        .select((name, id))
+        .order_by(name.asc())
+        .then_order_by(id.desc())
+        .load::<(String, i32)>(&connection)
+        .unwrap();
+    println!("then_order_by:{:?}", data);
+}
+
+pub fn limit_example() {
+    let connection = db::establish_connection();
+    diesel::delete(users).execute(&connection).unwrap();
+    diesel::insert_into(users)
+        .values(&vec![
+            name.eq("Sean"),
+            name.eq("Bastien"),
+            name.eq("Pascal"),
+        ])
+        .execute(&connection)
+        .unwrap();
+
+    let limited = users
+        .select(name)
+        .order(id)
+        .limit(1)
+        .load::<String>(&connection)
+        .unwrap();
+    println!("limit data:{:?}", limited);
+
+    let no_limit = users
+        .select(name)
+        .order(id)
+        .load::<String>(&connection)
+        .unwrap();
+    println!("no limit data:{:?}", no_limit);
+
+    println!("limit example end");
+}
+
+pub fn offset_example() {
+    let connection = db::establish_connection();
+    diesel::delete(users).execute(&connection).unwrap();
+    diesel::insert_into(users)
+        .values(&vec![
+            name.eq("Sean"),
+            name.eq("Bastien"),
+            name.eq("Pascal"),
+        ])
+        .execute(&connection)
+        .unwrap();
+
+    let query = users.select(name).order(id).limit(2);
+
+    type DB = diesel::pg::Pg;
+
+    let offset = query.offset(1).load::<String>(&connection).unwrap();
+    println!("offset data:{:?}", offset);
+    let sql = debug_query::<DB, _>(&query.offset(1)).to_string();
+    println!("SQL:{:?}", sql);
+
+    let no_offset = query.load::<String>(&connection).unwrap();
+    println!("no offset data:{:?}", no_offset);
+    let sql = debug_query::<DB, _>(&query).to_string();
+    println!("SQL:{:?}", sql);
+
+    println!("offset example end");
+}
+
+pub fn skip_locked_example() {
+    let connection = db::establish_connection();
+
+    let query = users.for_update().skip_locked();
+    let data = query.load::<(i32, String)>(&connection).unwrap();
+    println!("data:{:?}", data);
+
+    println!("SQL:{:?}", diesel::debug_query(&query).to_string());
+    println!("FOR UPDATE SKIP LOCKED end");
+}
+
+pub fn no_wait_example() {
+    let connection = db::establish_connection();
+    let query = users.for_update().no_wait();
+
+    let data = query.load::<(i32, String)>(&connection).unwrap();
+    println!("data:{:?}", data);
+
+    println!("SQL:{:?}", diesel::debug_query(&query).to_string());
+    //SELECT \"users\".\"id\", \"users\".\"name\" FROM \"users\" FOR UPDATE NOWAIT
+    println!("FOR UPDATE NOWAIT end");
+}
+
+/// 添加行锁，不能与（distinct,group by,unions等）使用。
+/// 得添加with-deprecated才能使用for_update,例：diesel = { version="1.4.6",features=["extras","postgres","r2d2","with-deprecated"] }
+pub fn for_update_example() {
+    let connection = db::establish_connection();
+    type DB = diesel::pg::Pg;
+
+    // users.select(name).for_update.load::<String>(&connection);
+    // SELECT \"users\".\"name\" FROM \"users\" FOR UPDATE
+    let query = users.select(name).for_update();
+    // let sql = diesel::debug_query::<DB, _>(&query).to_string();
+    let sql = diesel::debug_query(&query).to_string();
+    println!("悲观锁SQL：{:?}", sql);
+    let data = query.load::<String>(&connection).unwrap();
+    println!("data:{:?}", data);
+
+    println!("for update悲观锁 end");
+}
+
+/// postgreSQL专有 for_no_key_update
+pub fn for_no_key_update_example() {
+    let connection = db::establish_connection();
+
+    let query = users.for_no_key_update();
+    let data = query.load::<(i32, String)>(&connection);
+    println!("FOR NO KEY UPDATE :{:?}", data);
+    println!("SQL:{:?}", diesel::debug_query(&query).to_string());
+    //SELECT \"users\".\"id\", \"users\".\"name\" FROM \"users\" FOR NO KEY UPDATE
+
+    println!("FOR NO KEY UPDATE end");
+}
+
+/// postgreSQL专有FOR SHARE
+pub fn for_share_example() {
+    let connection = db::establish_connection();
+
+    let query = users.for_share();
+    let data = query.load::<(i32, String)>(&connection).unwrap();
+    println!("FOR SHARE data:{:?}", data);
+    println!("SQL:{:?}", diesel::debug_query(&query).to_string());
+    //SELECT \"users\".\"id\", \"users\".\"name\" FROM \"users\" FOR SHARE
+
+    println!("FOR SHARE end");
+
+    let query = users.for_key_share();
+    let data = query.load::<(i32, String)>(&connection).unwrap();
+    println!("FOR KEY SHARE data:{:?}", data);
+    println!("SQL:{:?}", diesel::debug_query(&query).to_string());
+    //SELECT \"users\".\"id\", \"users\".\"name\" FROM \"users\" FOR KEY SHARE
+
+    println!("FOR KEY SHARE end");
+}
+
+/// 应用场景在后台搜索条件查询时，连接条件
+pub fn into_boxed_example() {
+    let connection = db::establish_connection();
+
+    use std::collections::HashMap;
+    let mut params = HashMap::new();
+    params.insert("name", "Sean");
+
+    let mut query = users::table.into_boxed();
+    if let Some(nam) = params.get("name") {
+        query = query.filter(users::name.eq(nam));
+    }
+
+    println!("SQL:{:?}", diesel::debug_query(&query).to_string());
+    let data = query.load::<(i32, String)>(&connection);
+    println!("data:{:?}", data);
+
+    println!("into_boxed end");
+}
+
+/// `foo = (SELECT ...)`这样子的查询语句
+pub fn single_value_example() {
+    use crate::schema::posts;
+    let connection = db::establish_connection();
+
+    let last_post = posts::table.order(posts::id.desc());
+
+    let most_recently_active_user = users
+        .select(name)
+        .filter(
+            id.nullable()
+                .eq(last_post.select(posts::user_id).single_value()),
+        )
+        .first::<String>(&connection)
+        .unwrap();
+    println!("most_recently_active_user:{:?}", most_recently_active_user);
+
+    let query = users.select(name).filter(
+        id.nullable()
+            .eq(last_post.select(posts::user_id).single_value()),
+    );
+    let data = query.first::<String>(&connection).unwrap();
+    println!("data:{:?}", data);
+    let sql = diesel::debug_query::<diesel::pg::Pg, _>(&query).to_string();
+    println!("SQL:{:?}", sql);
+
+    println!("single_value end");
+}
+
+pub fn get_result_example() {
+    let connection = db::establish_connection();
+    let inserted_row = diesel::insert_into(users)
+        .values(name.eq("Ruby"))
+        .get_result::<User>(&connection)
+        .unwrap();
+    println!("inserted_row: {:?}", inserted_row);
+
+    let update_result = diesel::update(users.find(31))
+        .set(name.eq("Jim"))
+        .get_result::<(i32, String)>(&connection);
+    println!("update_result:{:?}", update_result);
+    println!("get_result end");
+}

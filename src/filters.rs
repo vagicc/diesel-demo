@@ -1,4 +1,5 @@
 use crate::handlers;
+use crate::models::animal_model;
 use crate::models::user_model;
 use warp::Filter;
 
@@ -56,10 +57,118 @@ pub fn all_routes() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rej
             format!("filter_example")
         });
 
+    let user_find_example = warp::get()
+        .and(warp::path!("users" / "find"))
+        .and(warp::path::end())
+        .map(|| {
+            user_model::find_example();
+            format!("find直接查询主键")
+        });
+
+    let user_order = warp::get()
+        .and(warp::path!("users" / "order"))
+        .and(warp::path::end())
+        .map(|| {
+            user_model::order_example();
+            format!("order example")
+        });
+    let user_limit = warp::get()
+        .and(warp::path!("users" / "limit"))
+        .and(warp::path::end())
+        .map(|| {
+            user_model::limit_example();
+            format!("limit example")
+        });
+    let user_offset = warp::get()
+        .and(warp::path!("users" / "offset"))
+        .and(warp::path::end())
+        .map(|| {
+            user_model::offset_example();
+            format!("offset example")
+        });
+    let into_boxed_example = warp::get()
+        .and(warp::path!("users" / "into_boxed"))
+        .and(warp::path::end())
+        .map(|| {
+            user_model::into_boxed_example();
+            format!("into_boxed_example")
+        });
+
+    let for_update_example = warp::get()
+        .and(warp::path!("users" / "for_update"))
+        .and(warp::path::end())
+        .map(|| {
+            user_model::for_update_example();
+            format!("悲观锁（for updata）")
+        });
+    let skip_locked = warp::get()
+        .and(warp::path!("usres" / "skip_locked"))
+        .and(warp::path::end())
+        .map(|| {
+            //测试失败
+            println!("skip_locked START");
+            user_model::skip_locked_example();
+            format!("skip_locked_example")
+        });
+
+    let no_wait_example = warp::get()
+        .and(warp::path!("users" / "no_wait"))
+        .and(warp::path::end())
+        .map(|| {
+            user_model::no_wait_example();
+            format!("no_wait_example")
+        });
+
+    let for_no_key_update = warp::get()
+        .and(warp::path!("users" / "for_no_key_update"))
+        .and(warp::path::end())
+        .map(|| {
+            user_model::for_no_key_update_example();
+            format!("for_no_key_update_example")
+        });
+
+    let for_share_example = warp::get()
+        .and(warp::path!("users" / "for_share"))
+        .and(warp::path::end())
+        .map(|| {
+            user_model::for_share_example();
+            format!("for_share_example")
+        });
+    let single_value = warp::get()
+        .and(warp::path!("users" / "single_value"))
+        .and(warp::path::end())
+        .map(|| {
+            user_model::single_value_example();
+            format!("single_value_example")
+        });
+    let get_result_example = warp::get()
+        .and(warp::path!("users" / "get_result"))
+        .and(warp::path::end())
+        .map(|| {
+            user_model::get_result_example();
+            format!("get_result_example")
+        });
+
     let animal = warp::get()
         .and(warp::path!("animal" / "distinct-on"))
         .and(warp::path::end())
         .and_then(handlers::animal_handler::distinct_demo);
+
+    let animal_or_filter = warp::get()
+        .and(warp::path!("animal" / "or_filter"))
+        .and(warp::path::end())
+        .map(|| {
+            animal_model::or_filter_example();
+            format!("or_filter_example")
+        });
+
+    let animal_update_demo = warp::get()
+        .and(warp::path!("animal" / "update"))
+        .and(warp::path::end())
+        .map(|| {
+            animal_model::update_demo();
+            format!("update")
+        });
 
     let routes = home
         .or(users)
@@ -68,6 +177,20 @@ pub fn all_routes() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rej
         .or(user_count)
         .or(user_inner_join)
         .or(user_filter)
-        .or(animal);
+        .or(user_find_example)
+        .or(user_order)
+        .or(user_limit)
+        .or(user_offset)
+        .or(for_update_example)
+        .or(no_wait_example)
+        .or(skip_locked)
+        .or(for_no_key_update)
+        .or(for_share_example)
+        .or(into_boxed_example)
+        .or(single_value)
+        .or(get_result_example)
+        .or(animal)
+        .or(animal_or_filter)
+        .or(animal_update_demo);
     routes
 }

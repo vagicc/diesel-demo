@@ -1,7 +1,6 @@
 use diesel::QueryDsl;
 use dotenv::dotenv;
 use std::{env, net::SocketAddr};
-use warp::Filter;
 
 mod db;
 mod handlers;

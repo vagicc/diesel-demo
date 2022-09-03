@@ -10,7 +10,10 @@ diesel-cli命令行工具（创建、迁移）：
 安装diesel-cli工具：cargo install diesel_cli --no-default-features --features postgres
 
 在cargo项目根目录下添加.env文件,加下如下条进行postgres数据库连接配置：
+postgres数据库：
 DATABASE_URL=postgres://postgres:llxxs@127.0.0.1:5432/linksnap
+mysql数据库：
+DATABASE_URL=mysql://[user[:password]@]host/database_name
 
 在Cargo.toml中添加依赖项：
 diesel = { version="1.4.6",features=["extras","postgres","r2d2"] }
@@ -25,7 +28,7 @@ elapse@elapse-PC:/luck/Language/Rust/warp-wiki$
 创建admins表迁移，运行创建表迁移命令（diesel migration generate 表名）：
 elapse@elapse-PC:/luck/Language/Rust/warp-wiki$ diesel migration generate admins
 Creating migrations/2021-05-13-071702_admins/up.sql
-Creating migrations/2021-05-13-071702_admins/down.sql
+Creating migrations/2021-05-13-071702_admins/down.sql 
 elapse@elapse-PC:/luck/Language/Rust/warp-wiki$ 
 命令运行后会生成两个空的迁移文件up.sql和down.sql,
 迁移文件只是普通的SQL,接着在up.sql上面添加CREATE TABLE,同时在down.sql添加相应的DROP TABLE
