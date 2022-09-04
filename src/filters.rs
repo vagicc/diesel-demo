@@ -4,7 +4,9 @@ use crate::models::user_model;
 use warp::Filter;
 
 pub fn all_routes() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    let home = warp::get().and(warp::path::end()).map(|| format!("首页"));
+    let home = warp::get()
+        .and(warp::path::end())
+        .map(|| format!("首页-diesel-demo"));
     let users = warp::get()
         .and(warp::path!("users" / "distinct"))
         .and(warp::path::end())
@@ -170,6 +172,45 @@ pub fn all_routes() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rej
             format!("update")
         });
 
+    use std::collections::HashMap;
+    let get_demo = warp::get()
+        .and(warp::path("get_demo"))
+        .and(warp::path::end())
+        .and(warp::query::<HashMap<String, String>>())
+        .map(|p: HashMap<String, String>| match p.get("key") {
+            Some(key) => warp::http::Response::builder().body(format!("key = {}", key)),
+            None => {
+                warp::http::Response::builder().body(String::from("No \"key\" param in query."))
+            }
+        });
+    let get_example = warp::get()
+        .and(warp::path("get_example"))
+        .and(warp::path::end())
+        .and(warp::query::<HashMap<String, String>>())
+        .and_then(crate::handlers::get_demo_handler::get_example);
+    let get_example_num = warp::get()
+        .and(warp::path!("get_example" / "num"))
+        .and(warp::path::end())
+        .and(warp::query::<HashMap<String, i64>>())
+        .and_then(crate::handlers::get_demo_handler::get_example_number);
+    let get_my = warp::get()
+        .and(warp::path!("get_demo" / "my"))
+        .and(warp::path::end())
+        .and(warp::query::<crate::handlers::get_demo_handler::MyObject>())
+        .and_then(crate::handlers::get_demo_handler::example);
+    let opt_query = warp::query::<crate::handlers::get_demo_handler::MyObject>()
+        .map(Some)
+        .or_else(|_| async {
+            Ok::<(Option<crate::handlers::get_demo_handler::MyObject>,), std::convert::Infallible>(
+                (None,),
+            )
+        });
+    let get_my_opt = warp::get()
+        .and(warp::path!("get_demo" / "my_opt"))
+        .and(warp::path::end())
+        .and(opt_query)
+        .and_then(crate::handlers::get_demo_handler::my_options);
+
     let routes = home
         .or(users)
         .or(user_select)
@@ -191,6 +232,11 @@ pub fn all_routes() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rej
         .or(get_result_example)
         .or(animal)
         .or(animal_or_filter)
-        .or(animal_update_demo);
+        .or(animal_update_demo)
+        .or(get_demo)
+        .or(get_example)
+        .or(get_example_num)
+        .or(get_my)
+        .or(get_my_opt);
     routes
 }

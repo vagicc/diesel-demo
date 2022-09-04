@@ -18,3 +18,10 @@ diesel = { version="1.4.6",features=["extras","postgres","r2d2","with-deprecated
 
 # 加载环境配置文件.env
 dotenv = "0.15.0"
+
+# json
+serde = {version = "1.0.136", features = ["derive"] }
+serde_json = "1.0.79"
+# serde = {version = "1.0", features = ["derive"]}
+# serde_json = {version = "1.0"}
+serde_derive = "1.0.136"
